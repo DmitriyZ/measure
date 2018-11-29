@@ -11,38 +11,50 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 
 import java.util.concurrent.TimeUnit;
 
-@State(Scope.Thread)
+@State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
-public class SpringVsStatic {
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+//
+//@BenchmarkMode(Mode.Throughput)
+//@OutputTimeUnit(TimeUnit.SECONDS)
 
-    private SpringComponent bean;
+//@CompilerControl(CompilerControl.Mode.DONT_INLINE)
+public class SpringVsSpringInterfaceVsStatic {
+
+    private SpringCompnent bean;
+    private ISpring iSpring;
 
     @Setup
     public void setup() {
         ApplicationContext context =
-                new AnnotationConfigApplicationContext(SpringComponent.class);
-        bean = context.getBean(SpringComponent.class);
+                new AnnotationConfigApplicationContext(SpringConfiguration.class);
+        bean = context.getBean(SpringCompnent.class);
+        iSpring = context.getBean(ISpring.class);
     }
 
     @Benchmark
-    @Measurement(batchSize = 10000)
     public void staticMethod(Blackhole blackhole) {
-        blackhole.consume(StaticUtil.cacl(100));
+        blackhole.consume(StaticClass.cacl(1));
     }
 
     @Benchmark
-    @Measurement(batchSize = 10000)
     public void beanMethod(Blackhole blackhole) {
-        blackhole.consume(bean.cacl(100));
+        blackhole.consume(bean.cacl(1));
+    }
+
+    @Benchmark
+    public void beanViaInterface(Blackhole blackhole) {
+        blackhole.consume(iSpring.cacl(1));
     }
 
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
-                .include(SpringVsStatic.class.getSimpleName())
+                .include(SpringVsSpringInterfaceVsStatic.class.getSimpleName())
                 .warmupIterations(3)
-                .measurementIterations(3)
+                .warmupBatchSize(1000)
+                .measurementIterations(5)
+                .measurementBatchSize(1000000)
                 .forks(1)
                 .build();
 
